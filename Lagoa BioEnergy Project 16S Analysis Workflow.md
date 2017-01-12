@@ -1,6 +1,6 @@
 
 
-### Protocolo de análise - Comunidade microbiana da Lagoa da Conceição ###
+### Analysis protocol - Microbial community of Lagoa da Conceicao ###
 
 This protocol was created to guarantee the transparency and reproducibility of the data analysis performed by the Group of Microbial Oceanography (GOM - UFSC) for the **Lagoa BioEnergy** project.
 
