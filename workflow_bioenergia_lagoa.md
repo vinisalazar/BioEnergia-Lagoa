@@ -7,7 +7,9 @@
 <link rel="stylesheet" href="https://stackedit.io/res-min/themes/base.css" />
 <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
 </head>
-<body><div class="container"><h3 id="protocolo-de-análise-comunidade-microbiana-da-lagoa-da-conceição">Protocolo de análise - Comunidade microbiana da Lagoa da Conceição</h3>
+<body><div class="container"><h3 id="protocolo-de-análise-comunidade-microbiana-da-lagoa-da-conceição"></h3>
+
+<p>Protocolo de análise - Comunidade microbiana da Lagoa da Conceição</p>
 
 <p>Esse protocolo tem a intenção de garantir a transparência e reproducibilidade da análise de dados realizada pelo Grupo de Oceanografia Microbiana - GOM UFSC para o projeto <strong>“Determinação de diversidade filogenética em zonas mortas (Lagoa da Conceição - Florianópolis / SC) com ênfase na identificação de bactérias produtoras de hidrogênio”</strong>.</p>
 
