@@ -1,0 +1,128 @@
+
+
+### Protocolo de análise - Comunidade microbiana da Lagoa da Conceição ###
+
+This protocol was created to guarantee the transparency and reproducibility of the data analysis performed by the Group of Microbial Oceanography (GOM - UFSC) for the **Lagoa BioEnergy** project.
+
+This analysis was conducted using the following computational tools: [PEAR](http://www.exelixis-lab.org/pear) (*v0.9.10*), [QIIME](http://qiime.org/) (*v1.9.1*), [USEARCH](http://www.drive5.com/usearch/) (*v7.0*), the [SILVA](https://www.arb-silva.de/) (*119*) database, all based on the protocol developed by the [Brazilian Microbiome Project](http://www.brmicrobiome.org/#!16s-profiling-pipeline-illumina/czxl) (**BMP**). We recommend consulting the BMP website to learn more about this analysis. You can find more complete information about these softwares on the references of the paper related to this document.
+
+All of the following commands are typed on the Terminal app (bash):
+
+Step 1 - Merging reads with **PEAR**
+
+`$ pear -q 24 -n 350 -t 150 -u 0.02 -v 100 -j 8 -o output/amostra_mergida1 -f $PWD/amostra_forward1 -r $PWD/amostra_reverse1`
+
+Where: 
+-q = quality_threshold
+-n = min_read_length
+-t = min_trim_length
+-u = max_uncalled_base
+-v = min_overlap
+-j = threads
+-o = output directory
+-f = forward_read
+-r = reverse_read
+
+We do this with each sample.
+
+Step 2 - Processing samples with **QIIME**
+
+`$ multiple_split_libraries_fastq.py -i $PWD/amostras -o slout -p ../split_par.txt`
+
+Content of the **split_par.txt** file:
+split_libraries_fastq:phred_quality_threshold	24
+split_libraries_fastq:barcode_type	not_barcoded
+split_libraries_fastq:sequence_max_n	100
+split_libraries_fastq:store_demultiplexed_fastq	True
+
+Step 3 - Quality filtering with **USEARCH 7**
+
+`$ usearch7 -fastq_filter slout/seqs.fastq -fastq_maxee 0.5 -fastq_trunclen 350 -fastaout reads350ee50.fa`
+
+Step 4 - Converting from **QIIME** to **UPARSE** format:
+
+`$ perl $PWD/bmp-Qiime2Uparse.pl -i reads350ee50.fa -o reads_uparse.fa`
+
+Step 5 - **USEARCH**: derreplication, singleton removal, *de novo* clustering, chimera removal
+
+`$ usearch7 -derep_fulllength reads_uparse.fa -output derep.fa -sizeout`
+
+`$ usearch7 -sortbysize derep.fa -output sorted.fa -minsize 2`
+
+`$ usearch7 -cluster_otus sorted.fa -otus otus1.fa`
+
+`$ usearch7 -uchime_ref otus1.fa -db $PWD/gold.fa -strand plus -nonchimeras otus2.fa`
+
+Step 6 - Formatting suggested by the BMP protocol
+
+`$ fasta_formatter -i otus2.fa -o formated_otus2.fa`
+`$ perl $PWD/bmp-otuName.pl -i formated_otus2.fa -o otus.fa`
+
+Step 7 - Mapping reads back to the OTU database
+
+`$ usearch7 -usearch_global reads_uparse.fa -db otus.fa -strand plus -id 0.97 -uc map.uc`
+
+Step 8 - Taxonomy assignment with **QIIME** using the **Silva 119** database, alignment, alignment filtering and tree building.
+
+`$ assign_taxonomy.py -i otus.fa -o tax_out_silva -r $PWD/Silva119_release/rep_set/97/Silva_119_rep_set97.fna -t $PWD/Silva119_release/taxonomy/97/taxonomy_97_7_levels.txt`
+
+`$ align_seqs.py -i otus.fa -o rep_set_align -t $PWD/rep_set_align/Silva_119_rep_set97_aligned_16S_only.fna`
+
+`$ filter_alignment.py -i rep_set_align/otus_aligned.fasta -o filtered_alignment`
+
+`$ make_phylogeny.py -i filtered_alignment/otus_aligned_pfiltered.fasta -o rep_set.tre`
+
+Step 9 - Formatting suggested by the BMP protocol
+
+`$ python $PWD/bmp-map2qiime.py map.uc > otu_table.txt`
+
+Step 10 - Building the OTU table
+
+`$ make_otu_table.py -i otu_table.txt -t tax_out_silva/otus_tax_assignments.txt -o otu_table.biom`
+
+Checking our OTU table, it's possible to the determine the subsampling value used for the following diversity analysis:
+
+`$ biom summarize-table -i otu_table.biom`
+
+Num samples: 16
+Num observations: 1546
+Total count: 219709
+Table density (fraction of non-zero values): 0.707`
+
+`Counts/sample summary:
+ Min: 7488.0
+ Max: 22498.0
+ Median: 12012.500
+ Mean: 13731.812
+ Std. dev.: 4670.947
+ Sample Metadata Categories: None provided
+ Observation Metadata Categories: taxonomy`
+
+`Counts/sample detail:
+82.Nov.a.assembled.fastq: 7488.0
+33.Dez.a.assembled.fastq: 7546.0
+82.Mar.b.assembled.fastq: 9503.0
+82.Nov.b.assembled.fastq: 10135.0
+82.Dez.a.assembled.fastq: 10780.0
+33.Nov.a.assembled.fastq: 11100.0
+82.Dez.b.assembled.fastq: 11660.0
+33.Jan.b.assembled.fastq: 11749.0
+82.Jan.a.assembled.fastq: 12276.0
+33.Mar.b.assembled.fastq: 12469.0
+33.Nov.b.assembled.fastq: 15665.0
+82.Jan.b.assembled.fastq: 16197.0
+33.Jan.a.assembled.fastq: 19868.0
+33.Dez.b.assembled.fastq: 19874.0
+33.Mar.a.assembled.fastq: 20901.0
+82.Mar.a.assembled.fastq: 22498.0`
+
+Step 11 - Diversity analysis: **QIIME** default parameter, except for the -e (subsampling) value obtained by checking our BIOM table. For this analysis, we used an -e value of 7488 (sample with least observations):
+
+`$ core_diversity_analyses.py -i otu_table.biom -m map.txt -t rep_set.tre -e 7488 -o core_output`
+
+For this project, any result presented as "generated by QIIME" is an output of the command typed above.
+
+Correspondence/questions: [GitHub/vinisalazar](https://github.com/vinisalazar) - viniws@gmail.com
+
+
+> Written with [StackEdit](https://stackedit.io/).
